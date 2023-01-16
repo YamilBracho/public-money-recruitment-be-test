@@ -21,7 +21,7 @@ namespace VacationRental.Api.Controllers
         public RentalViewModel Get(int rentalId)
         {
             if (!_rentals.ContainsKey(rentalId))
-                throw new ApplicationException("Rental not found");
+                throw new ApplicationException($"Rental not found: {rentalId}");
 
             return _rentals[rentalId];
         }

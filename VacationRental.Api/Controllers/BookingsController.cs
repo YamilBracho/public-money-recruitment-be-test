@@ -25,9 +25,45 @@ namespace VacationRental.Api.Controllers
         public BookingViewModel Get(int bookingId)
         {
             if (!_bookings.ContainsKey(bookingId))
-                throw new ApplicationException("Booking not found");
+                throw new ApplicationException($"Booking not found: {bookingId}");
 
             return _bookings[bookingId];
+        }
+
+        private void CheckIfFull(BookingBindingModel model, int units, ref DateTime start, ref DateTime end, ref bool isFull)
+        {
+            var startDate = model.Start;
+            // The lastdate for this booking is the number of night plus
+            // the number of daus for cleaning
+            var endDate = startDate.Add(TimeSpan.FromDays(model.Nights + model.PreparationTime));
+
+           int count = 0;
+           foreach (var booking in _bookings.Values) 
+           {
+               if (booking.RentalId != model.RentalId || booking.Unit != model.Unit)
+               {
+                    continue;
+               }
+
+               if (booking.Start >= startDate && booking.Start < endDate)
+               {
+                  count++;
+               }
+           }
+
+           // Any booking fits the condition, so the unit for this rentak is available
+           if (count == 0) 
+           {
+                start = startDate; 
+                end = endDate;
+                isFull = false;
+           }
+           else 
+           {
+                start = startDate;
+                end = endDate;
+                isFull = count >= units;
+           }
         }
 
         [HttpPost]
@@ -35,35 +71,32 @@ namespace VacationRental.Api.Controllers
         {
             if (model.Nights <= 0)
                 throw new ApplicationException("Nigts must be positive");
-            if (!_rentals.ContainsKey(model.RentalId))
-                throw new ApplicationException("Rental not found");
 
-            for (var i = 0; i < model.Nights; i++)
+            RentalViewModel rentalViewModel = null;
+            if (!_rentals.TryGetValue(model.RentalId, out rentalViewModel))
             {
-                var count = 0;
-                foreach (var booking in _bookings.Values)
-                {
-                    if (booking.RentalId == model.RentalId
-                        && (booking.Start <= model.Start.Date && booking.Start.AddDays(booking.Nights) > model.Start.Date)
-                        || (booking.Start < model.Start.AddDays(model.Nights) && booking.Start.AddDays(booking.Nights) >= model.Start.AddDays(model.Nights))
-                        || (booking.Start > model.Start && booking.Start.AddDays(booking.Nights) < model.Start.AddDays(model.Nights)))
-                    {
-                        count++;
-                    }
-                }
-                if (count >= _rentals[model.RentalId].Units)
-                    throw new ApplicationException("Not available");
+                 throw new ApplicationException("Rental not found:{model.RentalId}");
             }
 
+            // Check If the unit for this rental is available
+             DateTime start = DateTime.Now;
+            DateTime end = DateTime.Now;
+            bool isFull = false;
+            CheckIfFull(model, rentalViewModel.Units, ref start, ref end, ref isFull);
+            if (isFull)
+            {
+                throw new ApplicationException($"Rental {model.RentalId} is unavailable because it is full from {start.ToShortDateString()} To {end.ToShortDateString()}.");
+            }
 
             var key = new ResourceIdViewModel { Id = _bookings.Keys.Count + 1 };
-
             _bookings.Add(key.Id, new BookingViewModel
             {
                 Id = key.Id,
-                Nights = model.Nights,
                 RentalId = model.RentalId,
-                Start = model.Start.Date
+                Start = model.Start.Date,
+                Nights = model.Nights,
+                Unit = model.Unit,
+                PreparationTimeInDays = model.PreparationTime
             });
 
             return key;

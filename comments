@@ -1,0 +1,9 @@
+- Add more descriptive exception messages
+- Simplify logic to llok for unit and rental availability
+- Add field to keep track of ending date of cleaning unit. So you can determine if a unit is occupied by guest or in cleanign process
+- You can set the number of days for cleaning process in case, for example, there is a large unit
+- In the case of process of counting units availability for a determinate date, it was done using a OR operator and in some cases
+   it returns true where it should be return false, so to simplify the conditions, the check for rentalId was moved to a another if statement
+- There are some cahnge smissing in CalendarController, mostly to add support for new fields and maybe ane endpoint to get a list
+  of units for rentals in cleaning or occupation process
+- Add an endpoint to get status of units and rentals according a date period. For example give the status of rentals betwwen 2023, Jan 15 and 2023, Jan, 31

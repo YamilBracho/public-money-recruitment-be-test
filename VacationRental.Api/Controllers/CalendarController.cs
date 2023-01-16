@@ -24,9 +24,10 @@ namespace VacationRental.Api.Controllers
         public CalendarViewModel Get(int rentalId, DateTime start, int nights)
         {
             if (nights < 0)
-                throw new ApplicationException("Nights must be positive");
+                throw new ApplicationException($"Nights must be positive:{nights}");
+            
             if (!_rentals.ContainsKey(rentalId))
-                throw new ApplicationException("Rental not found");
+                throw new ApplicationException("Rental not found:{rentalId}");
 
             var result = new CalendarViewModel 
             {
@@ -43,8 +44,12 @@ namespace VacationRental.Api.Controllers
 
                 foreach (var booking in _bookings.Values)
                 {
-                    if (booking.RentalId == rentalId
-                        && booking.Start <= date.Date && booking.Start.AddDays(booking.Nights) > date.Date)
+                    if (booking.RentalId != rentalId) 
+                    {
+                        continue;
+                    }
+
+                    if (booking.Start <= date.Date && booking.Start.AddDays(booking.Nights) > date.Date)
                     {
                         date.Bookings.Add(new CalendarBookingViewModel { Id = booking.Id });
                     }
